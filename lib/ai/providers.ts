@@ -1,10 +1,39 @@
-import { gateway } from "@ai-sdk/gateway";
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import {
   customProvider,
   extractReasoningMiddleware,
   wrapLanguageModel,
 } from "ai";
 import { isTestEnvironment } from "../constants";
+
+const DEFAULT_MODEL = process.env.OPENROUTER_MODEL || "openrouter/auto";
+
+let openRouterClient: ReturnType<typeof createOpenRouter> | null = null;
+
+const getOpenRouterClient = () => {
+  if (!openRouterClient) {
+    const apiKey = process.env.OPENROUTER_API_KEY;
+
+    if (!apiKey) {
+      throw new Error(
+        "OPENROUTER_API_KEY environment variable is required to use OpenRouter."
+      );
+    }
+
+    openRouterClient = createOpenRouter({
+      apiKey,
+      headers: {
+        "HTTP-Referer": process.env.APP_BASE_URL || "http://localhost:3000",
+        "X-Title": process.env.APP_TITLE || "Interactive Novel Web App",
+      },
+    });
+  }
+
+  return openRouterClient;
+};
+
+const createLanguageModel = (modelId?: string) =>
+  getOpenRouterClient().chat(modelId || DEFAULT_MODEL);
 
 export const myProvider = isTestEnvironment
   ? (() => {
@@ -25,12 +54,12 @@ export const myProvider = isTestEnvironment
     })()
   : customProvider({
       languageModels: {
-        "chat-model": gateway.languageModel("xai/grok-2-vision-1212"),
+        "chat-model": createLanguageModel(),
         "chat-model-reasoning": wrapLanguageModel({
-          model: gateway.languageModel("xai/grok-3-mini"),
+          model: createLanguageModel(),
           middleware: extractReasoningMiddleware({ tagName: "think" }),
         }),
-        "title-model": gateway.languageModel("xai/grok-2-1212"),
-        "artifact-model": gateway.languageModel("xai/grok-2-1212"),
+        "title-model": createLanguageModel(),
+        "artifact-model": createLanguageModel(),
       },
     });

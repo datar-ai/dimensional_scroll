@@ -24,7 +24,7 @@
 - [AI SDK](https://ai-sdk.dev/docs/introduction)
   - Unified API for generating text, structured objects, and tool calls with LLMs
   - Hooks for building dynamic chat and generative user interfaces
-  - Supports xAI (default), OpenAI, Fireworks, and other model providers
+  - Uses the OpenRouter API for streaming story generation while remaining provider agnostic
 - [shadcn/ui](https://ui.shadcn.com)
   - Styling with [Tailwind CSS](https://tailwindcss.com)
   - Component primitives from [Radix UI](https://radix-ui.com) for accessibility and flexibility
@@ -36,15 +36,19 @@
 
 ## Model Providers
 
-This template uses the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway) to access multiple AI models through a unified interface. The default configuration includes [xAI](https://x.ai) models (`grok-2-vision-1212`, `grok-3-mini`) routed through the gateway.
+This template now uses the [OpenRouter API](https://openrouter.ai/) through the [`@openrouter/ai-sdk-provider`](https://www.npmjs.com/package/@openrouter/ai-sdk-provider). Configure your preferred model with the `OPENROUTER_MODEL` environment variable (defaults to `openrouter/auto`) and authenticate requests with `OPENROUTER_API_KEY`. Each call automatically forwards the `APP_BASE_URL` and `APP_TITLE` headers recommended by OpenRouter.
 
-### AI Gateway Authentication
+With the [AI SDK](https://ai-sdk.dev/docs/introduction), you can still switch to other providers as needed by adjusting the server-side integration.
 
-**For Vercel deployments**: Authentication is handled automatically via OIDC tokens.
+## Environment Variables
 
-**For non-Vercel deployments**: You need to provide an AI Gateway API key by setting the `AI_GATEWAY_API_KEY` environment variable in your `.env.local` file.
+Create a `.env.local` file (or use `vercel env pull`) and supply the following values:
 
-With the [AI SDK](https://ai-sdk.dev/docs/introduction), you can also switch to direct LLM providers like [OpenAI](https://openai.com), [Anthropic](https://anthropic.com), [Cohere](https://cohere.com/), and [many more](https://ai-sdk.dev/providers/ai-sdk-providers) with just a few lines of code.
+- `OPENROUTER_API_KEY`: Required. Your OpenRouter API key (format `sk-or-...`).
+- `OPENROUTER_MODEL`: Optional. Default model identifier to stream from (`openrouter/auto`).
+- `APP_BASE_URL`: Optional. Public URL of your deployment, used for OpenRouter attribution headers.
+- `APP_TITLE`: Optional. Title shown in OpenRouter's request logs.
+- `STORY_SYSTEM_PROMPT`: Optional. Override the shared narrative system prompt used for every chat session.
 
 ## Deploy Your Own
 
@@ -64,7 +68,9 @@ You will need to use the environment variables [defined in `.env.example`](.env.
 
 ```bash
 pnpm install
-pnpm dev
+npm run dev
 ```
+
+(`pnpm dev` works as well if you prefer pnpm directly.)
 
 Your app template should now be running on [localhost:3000](http://localhost:3000).

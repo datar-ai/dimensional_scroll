@@ -1,9 +1,10 @@
 "use server";
 
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { generateText, type UIMessage } from "ai";
 import { cookies } from "next/headers";
 import type { VisibilityType } from "@/components/visibility-selector";
-import { myProvider } from "@/lib/ai/providers";
+import { createLanguageModel } from "@/lib/ai/providers";
 import {
   deleteMessagesByChatIdAfterTimestamp,
   getMessageById,
@@ -20,9 +21,17 @@ export async function generateTitleFromUserMessage({
 }: {
   message: UIMessage;
 }) {
+  const openRouterClient = createOpenRouter({
+    apiKey: process.env.OPENROUTER_API_KEY,
+    headers: {
+      "HTTP-Referer": process.env.APP_BASE_URL || "http://localhost:3000",
+      "X-Title": process.env.APP_TITLE || "Interactive Novel Web App",
+    },
+  });
+
   const { text: title } = await generateText({
-    model: myProvider.languageModel("title-model"),
-    system: `\n
+    model: createLanguageModel(openRouterClient),
+    system: `
     - you will generate a short title based on the first message a user begins a conversation with
     - ensure it is not more than 80 characters long
     - the title should be a summary of the user's message

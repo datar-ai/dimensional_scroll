@@ -1,3 +1,4 @@
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { streamObject, tool, type UIMessageStreamWriter } from "ai";
 import type { Session } from "next-auth";
 import { z } from "zod";
@@ -5,7 +6,7 @@ import { getDocumentById, saveSuggestions } from "@/lib/db/queries";
 import type { Suggestion } from "@/lib/db/schema";
 import type { ChatMessage } from "@/lib/types";
 import { generateUUID } from "@/lib/utils";
-import { myProvider } from "../providers";
+import { createLanguageModel } from "../providers";
 
 type RequestSuggestionsProps = {
   session: Session;
@@ -40,9 +41,16 @@ export const requestSuggestions = ({
         "userId" | "createdAt" | "documentCreatedAt"
       >[] = [];
 
+      const openRouterClient = createOpenRouter({
+        apiKey: process.env.OPENROUTER_API_KEY,
+        headers: {
+          "HTTP-Referer": process.env.APP_BASE_URL || "http://localhost:3000",
+          "X-Title": process.env.APP_TITLE || "Interactive Novel Web App",
+        },
+      });
       const streamObjectStartTime = Date.now();
       const { elementStream } = streamObject({
-        model: myProvider.languageModel("artifact-model"),
+        model: createLanguageModel(openRouterClient),
         system:
           "You are a help writing assistant. Given a piece of writing, please offer suggestions to improve the piece of writing and describe the change. It is very important for the edits to contain full sentences instead of just words. Max 5 suggestions.",
         prompt: document.content,

@@ -1,18 +1,26 @@
+import { createOpenRouter } from "@openrouter/ai-sdk-provider";
 import { streamObject } from "ai";
 import { z } from "zod";
 import { sheetPrompt, updateDocumentPrompt } from "@/lib/ai/prompts";
-import { myProvider } from "@/lib/ai/providers";
+import { createLanguageModel } from "@/lib/ai/providers";
 import { createDocumentHandler } from "@/lib/artifacts/server";
 
 export const sheetDocumentHandler = createDocumentHandler<"sheet">({
   kind: "sheet",
   onCreateDocument: async ({ title, dataStream }) => {
+    const openRouterClient = createOpenRouter({
+      apiKey: process.env.OPENROUTER_API_KEY,
+      headers: {
+        "HTTP-Referer": process.env.APP_BASE_URL || "http://localhost:3000",
+        "X-Title": process.env.APP_TITLE || "Interactive Novel Web App",
+      },
+    });
     console.log("onCreateDocument (sheet): Starting streamObject for title:", title);
     const startTime = Date.now();
     let draftContent = "";
 
     const { fullStream } = streamObject({
-      model: myProvider.languageModel("artifact-model"),
+      model: createLanguageModel(openRouterClient),
       system: sheetPrompt,
       prompt: title,
       schema: z.object({
@@ -55,8 +63,15 @@ export const sheetDocumentHandler = createDocumentHandler<"sheet">({
     const startTime = Date.now();
     let draftContent = "";
 
+    const openRouterClient = createOpenRouter({
+      apiKey: process.env.OPENROUTER_API_KEY,
+      headers: {
+        "HTTP-Referer": process.env.APP_BASE_URL || "http://localhost:3000",
+        "X-Title": process.env.APP_TITLE || "Interactive Novel Web App",
+      },
+    });
     const { fullStream } = streamObject({
-      model: myProvider.languageModel("artifact-model"),
+      model: createLanguageModel(openRouterClient),
       system: updateDocumentPrompt(document.content, "sheet"),
       prompt: description,
       schema: z.object({

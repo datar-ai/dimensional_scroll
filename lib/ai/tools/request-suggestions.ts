@@ -24,9 +24,12 @@ export const requestSuggestions = ({
         .describe("The ID of the document to request edits"),
     }),
     execute: async ({ documentId }) => {
+      console.log("requestSuggestions: Starting for document ID:", documentId);
+      const startTime = Date.now();
       const document = await getDocumentById({ id: documentId });
 
       if (!document || !document.content) {
+        console.log("requestSuggestions: Document not found or empty content for ID:", documentId);
         return {
           error: "Document not found",
         };
@@ -37,6 +40,7 @@ export const requestSuggestions = ({
         "userId" | "createdAt" | "documentCreatedAt"
       >[] = [];
 
+      const streamObjectStartTime = Date.now();
       const { elementStream } = streamObject({
         model: myProvider.languageModel("artifact-model"),
         system:
@@ -49,7 +53,9 @@ export const requestSuggestions = ({
           description: z.string().describe("The description of the suggestion"),
         }),
       });
+      console.log("requestSuggestions: streamObject initialization duration:", Date.now() - streamObjectStartTime, "ms");
 
+      let loopStartTime = Date.now();
       for await (const element of elementStream) {
         // @ts-expect-error todo: fix type
         const suggestion: Suggestion = {
@@ -69,10 +75,11 @@ export const requestSuggestions = ({
 
         suggestions.push(suggestion);
       }
+      console.log("requestSuggestions: Stream loop finished in", Date.now() - loopStartTime, "ms");
 
       if (session.user?.id) {
         const userId = session.user.id;
-
+        const saveSuggestionsStartTime = Date.now();
         await saveSuggestions({
           suggestions: suggestions.map((suggestion) => ({
             ...suggestion,
@@ -81,7 +88,9 @@ export const requestSuggestions = ({
             documentCreatedAt: document.createdAt,
           })),
         });
+        console.log("requestSuggestions: saveSuggestions duration:", Date.now() - saveSuggestionsStartTime, "ms");
       }
+      console.log("requestSuggestions: Total execute duration:", Date.now() - startTime, "ms");
 
       return {
         id: documentId,

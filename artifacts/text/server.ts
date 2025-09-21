@@ -6,6 +6,8 @@ import { createDocumentHandler } from "@/lib/artifacts/server";
 export const textDocumentHandler = createDocumentHandler<"text">({
   kind: "text",
   onCreateDocument: async ({ title, dataStream }) => {
+    console.log("onCreateDocument (text): Starting streamText for title:", title);
+    const startTime = Date.now();
     let draftContent = "";
 
     const { fullStream } = streamText({
@@ -16,6 +18,7 @@ export const textDocumentHandler = createDocumentHandler<"text">({
       prompt: title,
     });
 
+    let loopStartTime = Date.now();
     for await (const delta of fullStream) {
       const { type } = delta;
 
@@ -31,10 +34,14 @@ export const textDocumentHandler = createDocumentHandler<"text">({
         });
       }
     }
+    console.log("onCreateDocument (text): Stream loop finished in", Date.now() - loopStartTime, "ms");
+    console.log("onCreateDocument (text): Total streamText duration:", Date.now() - startTime, "ms");
 
     return draftContent;
   },
   onUpdateDocument: async ({ document, description, dataStream }) => {
+    console.log("onUpdateDocument (text): Starting streamText for document ID:", document.id);
+    const startTime = Date.now();
     let draftContent = "";
 
     const { fullStream } = streamText({
@@ -52,6 +59,7 @@ export const textDocumentHandler = createDocumentHandler<"text">({
       },
     });
 
+    let loopStartTime = Date.now();
     for await (const delta of fullStream) {
       const { type } = delta;
 
@@ -67,6 +75,8 @@ export const textDocumentHandler = createDocumentHandler<"text">({
         });
       }
     }
+    console.log("onUpdateDocument (text): Stream loop finished in", Date.now() - loopStartTime, "ms");
+    console.log("onUpdateDocument (text): Total streamText duration:", Date.now() - startTime, "ms");
 
     return draftContent;
   },

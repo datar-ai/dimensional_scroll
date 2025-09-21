@@ -7,6 +7,8 @@ import { createDocumentHandler } from "@/lib/artifacts/server";
 export const sheetDocumentHandler = createDocumentHandler<"sheet">({
   kind: "sheet",
   onCreateDocument: async ({ title, dataStream }) => {
+    console.log("onCreateDocument (sheet): Starting streamObject for title:", title);
+    const startTime = Date.now();
     let draftContent = "";
 
     const { fullStream } = streamObject({
@@ -18,6 +20,7 @@ export const sheetDocumentHandler = createDocumentHandler<"sheet">({
       }),
     });
 
+    let loopStartTime = Date.now();
     for await (const delta of fullStream) {
       const { type } = delta;
 
@@ -36,6 +39,8 @@ export const sheetDocumentHandler = createDocumentHandler<"sheet">({
         }
       }
     }
+    console.log("onCreateDocument (sheet): Stream loop finished in", Date.now() - loopStartTime, "ms");
+    console.log("onCreateDocument (sheet): Total streamObject duration:", Date.now() - startTime, "ms");
 
     dataStream.write({
       type: "data-sheetDelta",
@@ -46,6 +51,8 @@ export const sheetDocumentHandler = createDocumentHandler<"sheet">({
     return draftContent;
   },
   onUpdateDocument: async ({ document, description, dataStream }) => {
+    console.log("onUpdateDocument (sheet): Starting streamObject for document ID:", document.id);
+    const startTime = Date.now();
     let draftContent = "";
 
     const { fullStream } = streamObject({
@@ -57,6 +64,7 @@ export const sheetDocumentHandler = createDocumentHandler<"sheet">({
       }),
     });
 
+    let loopStartTime = Date.now();
     for await (const delta of fullStream) {
       const { type } = delta;
 
@@ -75,6 +83,8 @@ export const sheetDocumentHandler = createDocumentHandler<"sheet">({
         }
       }
     }
+    console.log("onUpdateDocument (sheet): Stream loop finished in", Date.now() - loopStartTime, "ms");
+    console.log("onUpdateDocument (sheet): Total streamObject duration:", Date.now() - startTime, "ms");
 
     return draftContent;
   },

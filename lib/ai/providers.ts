@@ -12,9 +12,7 @@ let openRouterClient: ReturnType<typeof createOpenRouter> | null = null;
 
 const getOpenRouterClient = () => {
   if (!openRouterClient) {
-    const apiKey =
-      process.env.NEXT_PUBLIC_OPENROUTER_API_KEY ||
-      process.env.OPENROUTER_API_KEY;
+    const apiKey = process.env.OPENROUTER_API_KEY;
 
     if (!apiKey) {
       throw new Error(

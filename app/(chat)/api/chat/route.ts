@@ -1,5 +1,3 @@
-export const runtime = 'edge';
-
 import { geolocation } from "@vercel/functions";
 import {
   convertToModelMessages,

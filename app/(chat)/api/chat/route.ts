@@ -185,7 +185,7 @@ export async function POST(request: Request) {
     const stream = createUIMessageStream({
       execute: ({ writer: dataStream }) => {
         const result = streamText({
-          model: createLanguageModel(openRouterClient),
+          model: createLanguageModel(openRouterClient, selectedChatModel),
           system: systemPrompt({ selectedChatModel, requestHints }),
           messages: convertToModelMessages(uiMessages),
           stopWhen: stepCountIs(5),
@@ -215,7 +215,10 @@ export async function POST(request: Request) {
           onFinish: async ({ usage }) => {
             try {
               const providers = await getTokenlensCatalog();
-              const model = createLanguageModel(openRouterClient);
+              const model = createLanguageModel(
+                openRouterClient,
+                selectedChatModel
+              );
               const modelId = model.modelId;
               if (!modelId) {
                 finalMergedUsage = usage;

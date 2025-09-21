@@ -18,4 +18,9 @@ export const chatModels: ChatModel[] = [
     description:
       "Uses advanced chain-of-thought reasoning for complex problems",
   },
+  {
+    id: "grok-fast",
+    name: "Grok Fast",
+    description: "xAI's fast and cost-efficient model",
+  },
 ];

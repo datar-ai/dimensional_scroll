@@ -38,11 +38,48 @@ import { generateHashedPassword } from "./utils";
 // use the Drizzle adapter for Auth.js / NextAuth
 // https://authjs.dev/reference/adapter/drizzle
 
-// biome-ignore lint: Forbidden non-null assertion.
-const client = postgres(process.env.POSTGRES_URL!);
-const db = drizzle(client);
+const isDatabaseDisabled = process.env.DISABLE_DATABASE === 'true';
+
+let client: postgres.Sql;
+let db: ReturnType<typeof drizzle>;
+
+if (isDatabaseDisabled) {
+  console.warn("Database is disabled. All database operations will be mocked.");
+  // Create a mock client and db object
+  client = (() => {
+    const mockClient: any = () => {};
+    mockClient.end = () => {};
+    return mockClient;
+  })();
+  db = (() => {
+    const mockDb: any = {};
+    // Mock common Drizzle methods used in this file
+    mockDb.select = () => mockDb;
+    mockDb.from = () => mockDb;
+    mockDb.where = () => mockDb;
+    mockDb.orderBy = () => mockDb;
+    mockDb.limit = () => mockDb;
+    mockDb.insert = () => mockDb;
+    mockDb.values = () => mockDb;
+    mockDb.returning = () => []; // Return empty array for returning
+    mockDb.delete = () => mockDb;
+    mockDb.update = () => mockDb;
+    mockDb.set = () => mockDb;
+    mockDb.innerJoin = () => mockDb;
+    mockDb.execute = () => [{ count: 0 }]; // For count operations
+    return mockDb;
+  })();
+} else {
+  // biome-ignore lint: Forbidden non-null assertion.
+  client = postgres(process.env.POSTGRES_URL!);
+  db = drizzle(client);
+}
 
 export async function getUser(email: string): Promise<User[]> {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking getUser.");
+    return [];
+  }
   try {
     return await db.select().from(user).where(eq(user.email, email));
   } catch (_error) {
@@ -54,6 +91,10 @@ export async function getUser(email: string): Promise<User[]> {
 }
 
 export async function createUser(email: string, password: string) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking createUser.");
+    return []; // Assuming it returns an array of created users
+  }
   const hashedPassword = generateHashedPassword(password);
 
   try {
@@ -64,6 +105,10 @@ export async function createUser(email: string, password: string) {
 }
 
 export async function createGuestUser() {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking createGuestUser.");
+    return [{ id: "mock-guest-id", email: `mock-guest-${Date.now()}@example.com` }];
+  }
   const email = `guest-${Date.now()}`;
   const password = generateHashedPassword(generateUUID());
 
@@ -91,6 +136,10 @@ export async function saveChat({
   title: string;
   visibility: VisibilityType;
 }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking saveChat.");
+    return []; // Assuming it returns an array of saved chats
+  }
   try {
     return await db.insert(chat).values({
       id,
@@ -105,6 +154,10 @@ export async function saveChat({
 }
 
 export async function deleteChatById({ id }: { id: string }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking deleteChatById.");
+    return undefined; // Assuming it returns void or a single object
+  }
   try {
     await db.delete(vote).where(eq(vote.chatId, id));
     await db.delete(message).where(eq(message.chatId, id));
@@ -134,6 +187,10 @@ export async function getChatsByUserId({
   startingAfter: string | null;
   endingBefore: string | null;
 }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking getChatsByUserId.");
+    return { chats: [], hasMore: false };
+  }
   try {
     const extendedLimit = limit + 1;
 
@@ -200,6 +257,10 @@ export async function getChatsByUserId({
 }
 
 export async function getChatById({ id }: { id: string }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking getChatById.");
+    return null;
+  }
   try {
     const [selectedChat] = await db.select().from(chat).where(eq(chat.id, id));
     if (!selectedChat) {
@@ -213,6 +274,10 @@ export async function getChatById({ id }: { id: string }) {
 }
 
 export async function saveMessages({ messages }: { messages: DBMessage[] }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking saveMessages.");
+    return []; // Assuming it returns an array of saved messages
+  }
   try {
     return await db.insert(message).values(messages);
   } catch (_error) {
@@ -221,6 +286,10 @@ export async function saveMessages({ messages }: { messages: DBMessage[] }) {
 }
 
 export async function getMessagesByChatId({ id }: { id: string }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking getMessagesByChatId.");
+    return [];
+  }
   try {
     return await db
       .select()
@@ -244,6 +313,10 @@ export async function voteMessage({
   messageId: string;
   type: "up" | "down";
 }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking voteMessage.");
+    return undefined; // Assuming it returns void or a single object
+  }
   try {
     const [existingVote] = await db
       .select()
@@ -267,6 +340,10 @@ export async function voteMessage({
 }
 
 export async function getVotesByChatId({ id }: { id: string }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking getVotesByChatId.");
+    return [];
+  }
   try {
     return await db.select().from(vote).where(eq(vote.chatId, id));
   } catch (_error) {
@@ -290,6 +367,10 @@ export async function saveDocument({
   content: string;
   userId: string;
 }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking saveDocument.");
+    return []; // Assuming it returns an array of saved documents
+  }
   try {
     return await db
       .insert(document)
@@ -308,6 +389,10 @@ export async function saveDocument({
 }
 
 export async function getDocumentsById({ id }: { id: string }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking getDocumentsById.");
+    return [];
+  }
   try {
     const documents = await db
       .select()
@@ -325,6 +410,10 @@ export async function getDocumentsById({ id }: { id: string }) {
 }
 
 export async function getDocumentById({ id }: { id: string }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking getDocumentById.");
+    return null;
+  }
   try {
     const [selectedDocument] = await db
       .select()
@@ -348,6 +437,10 @@ export async function deleteDocumentsByIdAfterTimestamp({
   id: string;
   timestamp: Date;
 }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking deleteDocumentsByIdAfterTimestamp.");
+    return []; // Assuming it returns an array of deleted documents
+  }
   try {
     await db
       .delete(suggestion)
@@ -375,6 +468,10 @@ export async function saveSuggestions({
 }: {
   suggestions: Suggestion[];
 }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking saveSuggestions.");
+    return []; // Assuming it returns an array of saved suggestions
+  }
   try {
     return await db.insert(suggestion).values(suggestions);
   } catch (_error) {
@@ -390,6 +487,10 @@ export async function getSuggestionsByDocumentId({
 }: {
   documentId: string;
 }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking getSuggestionsByDocumentId.");
+    return [];
+  }
   try {
     return await db
       .select()
@@ -404,6 +505,10 @@ export async function getSuggestionsByDocumentId({
 }
 
 export async function getMessageById({ id }: { id: string }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking getMessageById.");
+    return []; // Assuming it returns an array of messages
+  }
   try {
     return await db.select().from(message).where(eq(message.id, id));
   } catch (_error) {
@@ -421,6 +526,10 @@ export async function deleteMessagesByChatIdAfterTimestamp({
   chatId: string;
   timestamp: Date;
 }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking deleteMessagesByChatIdAfterTimestamp.");
+    return undefined; // Assuming it returns void
+  }
   try {
     const messagesToDelete = await db
       .select({ id: message.id })
@@ -461,6 +570,10 @@ export async function updateChatVisiblityById({
   chatId: string;
   visibility: "private" | "public";
 }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking updateChatVisiblityById.");
+    return undefined; // Assuming it returns void or a single object
+  }
   try {
     return await db.update(chat).set({ visibility }).where(eq(chat.id, chatId));
   } catch (_error) {
@@ -479,6 +592,10 @@ export async function updateChatLastContextById({
   // Store merged server-enriched usage object
   context: AppUsage;
 }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking updateChatLastContextById.");
+    return undefined; // Assuming it returns void
+  }
   try {
     return await db
       .update(chat)
@@ -497,6 +614,10 @@ export async function getMessageCountByUserId({
   id: string;
   differenceInHours: number;
 }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking getMessageCountByUserId.");
+    return 0;
+  }
   try {
     const twentyFourHoursAgo = new Date(
       Date.now() - differenceInHours * 60 * 60 * 1000
@@ -531,6 +652,10 @@ export async function createStreamId({
   streamId: string;
   chatId: string;
 }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking createStreamId.");
+    return undefined; // Assuming it returns void
+  }
   try {
     await db
       .insert(stream)
@@ -544,6 +669,10 @@ export async function createStreamId({
 }
 
 export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
+  if (isDatabaseDisabled) {
+    console.warn("Database is disabled. Mocking getStreamIdsByChatId.");
+    return [];
+  }
   try {
     const streamIds = await db
       .select({ id: stream.id })
